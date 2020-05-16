@@ -14,7 +14,7 @@ use App\UserPayment;
 use App\Http\Requests\Events\BuyEvent;
 
 use App\Http\Resources\Events\EventResource;
-use App\Http\Resources\UserCategories\UserCategoryResource;
+use App\Http\Resources\UserCategories\UserCategoryPaymentResource;
 
 use App\Engines\MambuEngine;
 use App\UserCategory;
@@ -79,10 +79,12 @@ class EventController extends Controller
         }
         // End Add Cashback
 
+        $grandTotal     = $event->price - ($event->price * $event->cashback);
+
         $userPayment    = UserPayment::create([
                             'user_id'       => $loggedUser->id,
                             'event_id'      => $event->id,
-                            'grand_total'   => $event->price - ($event->price * $event->cashback),
+                            'grand_total'   => $grandTotal,
                             'status'        => 'paid'
                         ]);
 
@@ -91,6 +93,10 @@ class EventController extends Controller
                             'category_id'   => $event->category_id
                         ])->first();
 
-        return $this->sendResponse(new UserCategoryResource($userCategory), 'Event is successfully purchased');
+        $userCategoryPayment = $userCategory;
+        $userCategoryPayment->grand_total       = $grandTotal;
+        $userCategoryPayment->event_experience  = $event->experience;
+
+        return $this->sendResponse(new UserCategoryPaymentResource($userCategoryPayment), 'Event is successfully purchased');
     }
 }
